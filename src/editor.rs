@@ -112,8 +112,8 @@ impl Editor {
     }
 
     fn move_cursor(&mut self, key: Key) {
+        let terminal_height = self.terminal.size().height as usize;
         let Position { mut y, mut x } = self.cursor_position;
-        let size = self.terminal.size();
         let height = self.document.len();
         let mut width = if let Some(row) = self.document.row(y) {
             row.len()
@@ -134,8 +134,20 @@ impl Editor {
                     x = x.saturating_add(1);
                 }
             }
-            Key::PageUp => y = 0,
-            Key::PageDown => y = height,
+            Key::PageUp => {
+                y = if y > terminal_height {
+                    y - terminal_height
+                } else {
+                    0
+                }
+            }
+            Key::PageDown => {
+                y = if y.saturating_add(terminal_height) < height {
+                    y + terminal_height as usize
+                } else {
+                    height
+                }
+            }
             Key::End => x = width,
             Key::Home => x = 0,
             _ => (),
