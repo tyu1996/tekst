@@ -20,5 +20,5 @@ jobs:
           tag: continuous
           name: Continuous build
           prerelease: True
-          artifacts: "target/debug/tekst"
+          artifacts: "output/*"
           token: ${{ secrets.GITHUB_TOKEN }}
