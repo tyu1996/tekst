@@ -20,3 +20,13 @@ jobs:
         cargo build --verbose
         mkdir output
         cp target/debug/tekst output/tekst
+    
+    - name: Release
+      uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: True
+          tag: continuous
+          name: Continuous build
+          prerelease: True
+          artifacts: "output/*"
+          token: ${{ secrets.GITHUB_TOKEN }}
