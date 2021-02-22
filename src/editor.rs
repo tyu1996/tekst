@@ -57,7 +57,7 @@ impl Editor {
     pub fn default() -> Self {
         // Make the program takes filename as argument
         let args: Vec<String> = env::args().collect();
-        let mut initial_status = String::from("HELP: Ctrl-Q = quit");
+        let mut initial_status = String::from("HELP: Ctrl-S = save | Ctrl-Q = quit");
         let document = if args.len() > 1 {
             // Be note args[0] is always the program itself
             // args[1] will be the first argument after the program
@@ -104,10 +104,28 @@ impl Editor {
         Terminal::flush()
     }
 
+    fn save(&mut self) {
+        if self.document.file_name.is_none() {
+            let new_name = self.prompt("Save as: ").unwrap_or(None);
+            if new_name.is_none() {
+                self.status_message = StatusMessage::from("Save aborted.".to_string());
+                return;
+            }
+            self.document.file_name = new_name;
+        }
+
+        if self.document.save().is_ok() {
+            self.status_message = StatusMessage::from("File saved success.".to_string());
+        } else {
+            self.status_message = StatusMessage::from("Error writing file!".to_string());
+        }
+    }
+
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
         match pressed_key {
             Key::Ctrl('q') => self.should_quit = true,
+            Key::Ctrl('s') => self.save(),
             Key::Char(c) => {
                 self.document.insert(&self.cursor_position, c);
                 self.move_cursor(Key::Right);
@@ -288,6 +306,38 @@ impl Editor {
             text.truncate(self.terminal.size().width as usize);
             print!("{}", text);
         }
+    }
+
+    // Prompt for Saving File
+    fn prompt(&mut self, prompt: &str) -> Result<Option<String>, std::io::Error> {
+        let mut result = String::new();
+        loop {
+            self.status_message = StatusMessage::from(format!("{}{}", prompt, result));
+            self.refresh_screen()?;
+            match Terminal::read_key()? {
+                Key::Backspace => {
+                    if !result.is_empty() {
+                        result.truncate(result.len() - 1);
+                    }
+                }
+                Key::Char('\n') => break,
+                Key::Char(c) => {
+                    if !c.is_control() {
+                        result.push(c);
+                    }
+                }
+                Key::Esc => {
+                    result.truncate(0);
+                    break;
+                }
+                _ => (),
+            }
+        }
+        self.status_message = StatusMessage::from(String::new());
+        if result.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(result))
     }
 }
 
